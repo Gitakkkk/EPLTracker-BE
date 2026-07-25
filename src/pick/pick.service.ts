@@ -10,6 +10,7 @@ import { Pick } from './entities/pick.entity';
 import { MatchService } from '../match/match.service';
 import { MatchStatus } from '../match/entities/match.entity';
 import { User } from '../user/entities/user.entity';
+import { UserStat } from '../user-stat/entities/user-stat.entity';
 import { CreatePickDto } from './dto/create-pick.dto';
 
 @Injectable()
@@ -17,6 +18,8 @@ export class PickService {
   constructor(
     @InjectRepository(Pick)
     private readonly pickRepository: Repository<Pick>,
+    @InjectRepository(UserStat)
+    private readonly userStatRepository: Repository<UserStat>,
     private readonly matchService: MatchService,
   ) {}
 
@@ -47,7 +50,12 @@ export class PickService {
       prediction: dto.prediction,
     });
 
-    return this.pickRepository.save(pick);
+    await this.pickRepository.save(pick);
+
+    // 픽 제출 시 totalPicks 증가
+    await this.userStatRepository.increment({ user: { id: user.id } }, 'totalPicks', 1);
+
+    return pick;
   }
 
   async findMyPicks(user: User, roundId?: number): Promise<Pick[]> {

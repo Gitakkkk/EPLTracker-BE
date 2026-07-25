@@ -1,7 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Match, MatchResult, MatchStatus } from './entities/match.entity';
+import { Pick } from '../pick/entities/pick.entity';
+import { UserStat } from '../user-stat/entities/user-stat.entity';
 import { RoundService } from '../round/round.service';
 import { CreateMatchDto } from './dto/create-match.dto';
 import { UpdateResultDto } from './dto/update-result.dto';
@@ -11,6 +13,10 @@ export class MatchService {
   constructor(
     @InjectRepository(Match)
     private readonly matchRepository: Repository<Match>,
+    @InjectRepository(Pick)
+    private readonly pickRepository: Repository<Pick>,
+    @InjectRepository(UserStat)
+    private readonly userStatRepository: Repository<UserStat>,
     private readonly roundService: RoundService,
   ) {}
 
@@ -37,12 +43,36 @@ export class MatchService {
   async updateResult(id: number, dto: UpdateResultDto): Promise<Match> {
     const match = await this.findOne(id);
 
+    if (match.status === MatchStatus.FINISHED) {
+      throw new BadRequestException('이미 결과가 입력된 경기입니다.');
+    }
+
     match.homeScore = dto.homeScore;
     match.awayScore = dto.awayScore;
     match.status = MatchStatus.FINISHED;
     match.result = this.calcResult(dto.homeScore, dto.awayScore);
+    await this.matchRepository.save(match);
 
-    return this.matchRepository.save(match);
+    // 해당 경기의 모든 픽 가져와서 isCorrect 업데이트
+    const picks = await this.pickRepository.find({
+      where: { match: { id } },
+      relations: { user: true },
+    });
+
+    for (const pick of picks) {
+      pick.isCorrect = pick.prediction === match.result;
+      await this.pickRepository.save(pick);
+
+      if (pick.isCorrect) {
+        await this.userStatRepository.increment(
+          { user: { id: pick.user.id } },
+          'correctPicks',
+          1,
+        );
+      }
+    }
+
+    return match;
   }
 
   private calcResult(home: number, away: number): MatchResult {
