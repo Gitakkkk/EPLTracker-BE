@@ -8,6 +8,9 @@ import { Match } from './match/entities/match.entity';
 import { Pick } from './pick/entities/pick.entity';
 import { UserStat } from './user-stat/entities/user-stat.entity';
 import { AuthModule } from './auth/auth.module';
+import { LeagueModule } from './league/league.module';
+import { RoundModule } from './round/round.module';
+import { MatchModule } from './match/match.module';
 
 @Module({
   imports: [
@@ -26,6 +29,9 @@ import { AuthModule } from './auth/auth.module';
       }),
     }),
     AuthModule,
+    LeagueModule,
+    RoundModule,
+    MatchModule,
   ],
 })
 export class AppModule {}
