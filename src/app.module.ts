@@ -1,6 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from './user/entities/user.entity';
+import { League } from './league/entities/league.entity';
+import { Round } from './round/entities/round.entity';
+import { Match } from './match/entities/match.entity';
+import { Pick } from './pick/entities/pick.entity';
+import { UserStat } from './user-stat/entities/user-stat.entity';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -14,10 +21,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         username: config.get('DB_USERNAME'),
         password: config.get('DB_PASSWORD'),
         database: config.get('DB_NAME'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        entities: [User, League, Round, Match, Pick, UserStat],
         synchronize: true, // dev only — 운영에서는 migration으로 교체
       }),
     }),
+    AuthModule,
   ],
 })
 export class AppModule {}

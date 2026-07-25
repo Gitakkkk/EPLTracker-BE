@@ -1,98 +1,82 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# EPL 예측 픽 게임 — 프로젝트 로드맵
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## 프로젝트 개요
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+매 라운드 EPL 경기 결과를 예측(픽)하고, 적중률로 랭킹을 매기는 서비스.
+"관계형 데이터 많음 + 조회 집중 + 시간 기반 이벤트"라는 도메인 특성 덕분에,
+실무에서 자주 마주치는 백엔드 최적화 개념들을 자연스럽게 체감하며 학습할 수 있음.
 
-## Description
+**스택**: NestJS + TypeScript(백엔드), Next.js(프론트) — 실무 스택 재사용으로 학습 전이 효과 극대화
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+---
 
-## Project setup
+## 데이터 모델
 
-```bash
-$ pnpm install
+```
+User ─┬─ Pick (유저별 경기 예측)
+      └─ UserStat (누적 통계, 랭킹)
+
+Match ─┬─ Pick (경기별 예측들)
+       └─ Round (라운드/게임위크)
+
+League ─ Round ─ Match
 ```
 
-## Compile and run the project
+- `Pick`이 `User`와 `Match`를 잇는 다대다 관계 → 여기서 N+1이 자연스럽게 발생
+- "이번 라운드 랭킹 조회" 같은 쿼리에서 유저마다 픽을 따로 불러오면 N+1 → 조인/배치 로딩으로 해결하는 과정을 직접 경험
 
-```bash
-# development
-$ pnpm run start
+---
 
-# watch mode
-$ pnpm run start:dev
+## MVP 범위 (1~2주 목표)
 
-# production mode
-$ pnpm run start:prod
-```
+- [ ] 회원가입 / 로그인 (JWT)
+- [ ] 경기 목록 조회 (수동 시딩으로 시작)
+- [ ] 픽 제출 (경기 시작 전까지만 가능 — 시간 기반 검증 로직)
+- [ ] 경기 결과 입력 → 적중 여부 자동 계산
+- [ ] 랭킹 조회 (누적 점수순)
 
-## Run tests
+---
 
-```bash
-# unit tests
-$ pnpm run test
+## 단계별 확장 로드맵
 
-# e2e tests
-$ pnpm run test:e2e
+| 단계 | 시도해볼 것 | 배우는 개념 |
+|---|---|---|
+| 1 | MVP 완성 (기본 CRUD, 관계 설계) | 관계형 모델링 기초 |
+| 2 | 더미 유저 1만 명 + 픽 10만 건 생성 → 느린 랭킹 쿼리 직접 찾기 | 인덱스 적용 전후 비교, 쿼리 최적화 |
+| 3 | 랭킹 결과를 Redis로 캐싱 (라운드 종료 전까진 안 바뀌는 데이터) | 캐시 무효화 전략, 캐시 히트율 측정 |
+| 4 | 경기 결과 입력 시 "적중 여부 재계산"을 큐로 비동기 처리 | BullMQ, 멱등성(재계산 중복 방지) |
+| 5 | 실시간성 필요 시 외부 축구 스코어 API 폴링 도입 | 외부 API 연동, 재시도/타임아웃 처리 |
+| 6 | 라운드 마감 알림 (이메일/푸시) | 스케줄러(Cron) + 큐 연계 |
 
-# test coverage
-$ pnpm run test:cov
-```
+### 진행 팁
+처음부터 완벽한 아키텍처로 설계하지 말고:
+1. 일부러 단순하게 만들기
+2. 부하 걸어보기 (더미 데이터 대량 생성)
+3. 문제 재현하기 (느린 쿼리, N+1 등 직접 확인)
+4. 최적화하기
 
-## Deployment
+이 순서로 진행하면 "왜 이 기술이 필요한가"를 문제→해결 흐름으로 체감할 수 있어 이론서보다 오래 남음.
+각 단계를 블로그에 기록하며 진행하면 학습 내용의 자산화도 가능.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+---
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## 시작 전 결정할 것
 
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
-```
+### 1. 경기 데이터 소스
+- **수동 입력**으로 시작 → 도메인 로직(픽/랭킹/검증)에 먼저 집중
+- **무료 축구 API** (예: football-data.org) 연동은 4~5단계에서 별도 학습 주제로 붙이기
+  - 처음부터 외부 API를 섞으면 복잡도가 너무 커짐
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### 2. 팀/리그 범위
+- EPL 전체 20팀을 다 다룰지
+- 본머스 포함 관심 팀 몇 개로 좁혀서 시작할지
+- **추천**: 처음엔 좁혀서 데이터 모델을 검증하고, 이후 넓히는 방식
 
-## Resources
+---
 
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+## 다음 액션 후보
+- [ ] 데이터 소스 결정 (수동 vs API)
+- [ ] 팀/리그 범위 결정
+- [ ] 레포 구조 설계
+- [ ] 초기 스키마(ERD) 설계
+- [ ] NestJS 프로젝트 초기 세팅
