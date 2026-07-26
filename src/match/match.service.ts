@@ -13,10 +13,6 @@ export class MatchService {
   constructor(
     @InjectRepository(Match)
     private readonly matchRepository: Repository<Match>,
-    @InjectRepository(Pick)
-    private readonly pickRepository: Repository<Pick>,
-    @InjectRepository(UserStat)
-    private readonly userStatRepository: Repository<UserStat>,
     private readonly roundService: RoundService,
   ) {}
 
@@ -51,26 +47,29 @@ export class MatchService {
     match.awayScore = dto.awayScore;
     match.status = MatchStatus.FINISHED;
     match.result = this.calcResult(dto.homeScore, dto.awayScore);
-    await this.matchRepository.save(match);
 
-    // 해당 경기의 모든 픽 가져와서 isCorrect 업데이트
-    const picks = await this.pickRepository.find({
-      where: { match: { id } },
-      relations: { user: true },
-    });
+    await this.matchRepository.manager.transaction(async (em) => {
+      await em.save(match);
 
-    for (const pick of picks) {
-      pick.isCorrect = pick.prediction === match.result;
-      await this.pickRepository.save(pick);
+      const picks = await em.find(Pick, {
+        where: { match: { id } },
+        relations: { user: true },
+      });
 
-      if (pick.isCorrect) {
-        await this.userStatRepository.increment(
-          { user: { id: pick.user.id } },
-          'correctPicks',
-          1,
-        );
+      for (const pick of picks) {
+        pick.isCorrect = pick.prediction === match.result;
       }
-    }
+
+      await em.save(Pick, picks);
+
+      const correctUserIds = picks
+        .filter((p) => p.isCorrect)
+        .map((p) => p.user.id);
+
+      for (const userId of correctUserIds) {
+        await em.increment(UserStat, { user: { id: userId } }, 'correctPicks', 1);
+      }
+    });
 
     return match;
   }
