@@ -26,7 +26,7 @@ import { DummyDataSeedService } from './dummy-data-seed.service';
         synchronize: false,
       }),
     }),
-    TypeOrmModule.forFeature([User, UserStat, Match, Pick]),
+    TypeOrmModule.forFeature([User, Match]),
   ],
   providers: [DummyDataSeedService],
 })
