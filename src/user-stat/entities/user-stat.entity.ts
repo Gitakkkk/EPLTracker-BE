@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   OneToOne,
   PrimaryGeneratedColumn,
@@ -10,6 +11,7 @@ import {
 import { User } from '../../user/entities/user.entity';
 
 @Entity('user_stats')
+@Index('idx_user_stats_ranking', ['correctPicks', 'totalPicks'])
 export class UserStat {
   @PrimaryGeneratedColumn()
   id: number;

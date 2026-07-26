@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   ManyToOne,
   PrimaryGeneratedColumn,
   Unique,
@@ -27,6 +28,8 @@ export class Pick {
   @ManyToOne(() => User, (user) => user.picks, { onDelete: 'CASCADE' })
   user: User;
 
+  // 라운드별 랭킹 쿼리에서 matchId 기준 JOIN 시 풀스캔 방지
+  @Index('idx_picks_match_id')
   @ManyToOne(() => Match, (match) => match.picks, { onDelete: 'CASCADE' })
   match: Match;
 

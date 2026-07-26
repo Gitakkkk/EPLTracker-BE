@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -49,6 +50,8 @@ export class Match {
   @Column({ type: 'enum', enum: MatchResult, nullable: true })
   result: MatchResult;
 
+  // 라운드별 경기 조회 시 풀스캔 방지
+  @Index('idx_matches_round_id')
   @ManyToOne(() => Round, (round) => round.matches, { onDelete: 'CASCADE' })
   round: Round;
 
